@@ -13,17 +13,9 @@ pub struct H3Tree<T> {
 }
 
 impl<T: Copy> H3Tree<T> {
-    pub fn new(_depth: u8, t: T) -> H3Tree<T> {
+    pub fn empty(depth: u8, t: T) -> H3Tree<T> {
         H3Tree {
-            root: TreeNode::Node([
-                Box::new(TreeNode::Leaf(t)),
-                Box::new(TreeNode::Leaf(t)),
-                Box::new(TreeNode::Leaf(t)),
-                Box::new(TreeNode::Leaf(t)),
-                Box::new(TreeNode::Leaf(t)),
-                Box::new(TreeNode::Leaf(t)),
-                Box::new(TreeNode::Leaf(t)),
-            ]),
+            root: TreeNode::empty(depth, t),
         }
     }
 
@@ -36,7 +28,25 @@ impl<T: Copy> H3Tree<T> {
     }
 }
 
-impl<T> TreeNode<T> {
+impl<T: Copy> TreeNode<T> {
+    fn implementation(depth: u8, level: u8, default: T) -> TreeNode<T> {
+        if level == depth {
+            TreeNode::Leaf(default)
+        } else {
+            TreeNode::Node([
+                Box::new(Self::implementation(depth, level + 1, default)),
+                Box::new(Self::implementation(depth, level + 1, default)),
+                Box::new(Self::implementation(depth, level + 1, default)),
+                Box::new(Self::implementation(depth, level + 1, default)),
+                Box::new(Self::implementation(depth, level + 1, default)),
+                Box::new(Self::implementation(depth, level + 1, default)),
+                Box::new(Self::implementation(depth, level + 1, default)),
+            ])
+        }
+    }
+    pub fn empty(depth: u8, default: T) -> TreeNode<T> {
+        TreeNode::implementation(depth, 0, default)
+    }
     pub fn children(&self) -> Option<&[Box<TreeNode<T>>; 7]> {
         match self {
             TreeNode::Leaf(_) => None,
@@ -51,14 +61,14 @@ mod tests {
 
     #[test]
     fn test_root_node_is_not_null() {
-        let tree = H3Tree::new(1, 5);
+        let tree = H3Tree::empty(1, 5);
 
         assert!(&tree.root.children().is_some());
     }
 
     #[test]
     fn test_nodes_have_7_children() {
-        let tree = H3Tree::new(1, 5);
+        let tree = H3Tree::empty(1, 5);
         if let Some(children) = tree.root.children() {
             assert!(children.len() == 7);
         }
@@ -66,8 +76,8 @@ mod tests {
 
     #[test]
     fn test_leaves_have_no_children() {
-        let tree = H3Tree::new(1, 5);
+        let tree = H3Tree::empty(0, 5);
 
-        assert!(&tree.root.children().is_some());
+        assert!(&tree.root.children().is_none());
     }
 }

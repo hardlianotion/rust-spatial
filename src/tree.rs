@@ -14,10 +14,6 @@ pub struct H3Tree<T> {
 
 impl<T: Copy> H3Tree<T> {
     pub fn new(_depth: u8, t: T) -> H3Tree<T> {
-        // let tmp: T = match depth {
-        //     0 => t,
-        //     _ => t + 1,
-        // }
         H3Tree {
             root: TreeNode::Node([
                 Box::new(TreeNode::Leaf(t)),
@@ -39,10 +35,23 @@ impl<T: Copy> H3Tree<T> {
     }
 }
 
+impl<T> TreeNode<T> {
+    pub fn children(&self) -> Option<&[Box<TreeNode<T>>; 6]> {
+        match self {
+            TreeNode::Leaf(_) => None,
+            TreeNode::Node(children) => Some(children),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::tree::H3Tree;
+
     #[test]
-    fn test_fail() {
-        assert!(false);
+    fn test_root_node_is_not_null() {
+        let tree = H3Tree::new(1, 5);
+
+        assert!(&tree.root.children().is_some());
     }
 }

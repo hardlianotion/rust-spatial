@@ -1,16 +1,13 @@
 pub enum TreeNode<T> {
     Leaf(T),
-    Node([Box<TreeNode<T>>; 7]),
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct Index {
-    pub index: u64,
+    Node(T, [Box<TreeNode<T>>; 7]),
 }
 
 pub struct H3Tree<T> {
     pub root: TreeNode<T>,
 }
+
+use crate::index::Index;
 
 impl<T: Copy> H3Tree<T> {
     pub fn empty(depth: u8, t: T) -> H3Tree<T> {
@@ -23,6 +20,10 @@ impl<T: Copy> H3Tree<T> {
         todo!("Get the node at this address");
     }
 
+    pub fn set(&self, _index: Index, _level: u8, _data: T) -> bool {
+        todo!("Set data at the specified index");
+    }
+
     pub fn contains(&self, _index: Index) -> bool {
         todo!("Check that tree contains index.");
     }
@@ -33,15 +34,18 @@ impl<T: Copy> TreeNode<T> {
         if level == 0 {
             TreeNode::Leaf(default)
         } else {
-            TreeNode::Node([
-                Box::new(Self::implementation(level - 1, default)),
-                Box::new(Self::implementation(level - 1, default)),
-                Box::new(Self::implementation(level - 1, default)),
-                Box::new(Self::implementation(level - 1, default)),
-                Box::new(Self::implementation(level - 1, default)),
-                Box::new(Self::implementation(level - 1, default)),
-                Box::new(Self::implementation(level - 1, default)),
-            ])
+            TreeNode::Node(
+                default,
+                [
+                    Box::new(Self::implementation(level - 1, default)),
+                    Box::new(Self::implementation(level - 1, default)),
+                    Box::new(Self::implementation(level - 1, default)),
+                    Box::new(Self::implementation(level - 1, default)),
+                    Box::new(Self::implementation(level - 1, default)),
+                    Box::new(Self::implementation(level - 1, default)),
+                    Box::new(Self::implementation(level - 1, default)),
+                ],
+            )
         }
     }
     pub fn empty(depth: u8, default: T) -> TreeNode<T> {
@@ -50,7 +54,7 @@ impl<T: Copy> TreeNode<T> {
     pub fn children(&self) -> Option<&[Box<TreeNode<T>>; 7]> {
         match self {
             TreeNode::Leaf(_) => None,
-            TreeNode::Node(children) => Some(children),
+            TreeNode::Node(_, children) => Some(children),
         }
     }
 }

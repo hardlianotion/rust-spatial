@@ -1,6 +1,6 @@
 pub enum TreeNode<T> {
     Leaf(T),
-    Node([Box<TreeNode<T>>; 6]),
+    Node([Box<TreeNode<T>>; 7]),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -22,6 +22,7 @@ impl<T: Copy> H3Tree<T> {
                 Box::new(TreeNode::Leaf(t)),
                 Box::new(TreeNode::Leaf(t)),
                 Box::new(TreeNode::Leaf(t)),
+                Box::new(TreeNode::Leaf(t)),
             ]),
         }
     }
@@ -36,7 +37,7 @@ impl<T: Copy> H3Tree<T> {
 }
 
 impl<T> TreeNode<T> {
-    pub fn children(&self) -> Option<&[Box<TreeNode<T>>; 6]> {
+    pub fn children(&self) -> Option<&[Box<TreeNode<T>>; 7]> {
         match self {
             TreeNode::Leaf(_) => None,
             TreeNode::Node(children) => Some(children),
@@ -50,6 +51,21 @@ mod tests {
 
     #[test]
     fn test_root_node_is_not_null() {
+        let tree = H3Tree::new(1, 5);
+
+        assert!(&tree.root.children().is_some());
+    }
+
+    #[test]
+    fn test_nodes_have_7_children() {
+        let tree = H3Tree::new(1, 5);
+        if let Some(children) = tree.root.children() {
+            assert!(children.len() == 7);
+        }
+    }
+
+    #[test]
+    fn test_leaves_have_no_children() {
         let tree = H3Tree::new(1, 5);
 
         assert!(&tree.root.children().is_some());

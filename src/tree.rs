@@ -12,7 +12,24 @@ pub struct H3Tree<T> {
     pub root: TreeNode<T>,
 }
 
-impl<T> H3Tree<T> {
+impl<T: Copy> H3Tree<T> {
+    pub fn new(_depth: u8, t: T) -> H3Tree<T> {
+        // let tmp: T = match depth {
+        //     0 => t,
+        //     _ => t + 1,
+        // }
+        H3Tree {
+            root: TreeNode::Node([
+                Box::new(TreeNode::Leaf(t)),
+                Box::new(TreeNode::Leaf(t)),
+                Box::new(TreeNode::Leaf(t)),
+                Box::new(TreeNode::Leaf(t)),
+                Box::new(TreeNode::Leaf(t)),
+                Box::new(TreeNode::Leaf(t)),
+            ]),
+        }
+    }
+
     pub fn get(&self, _index: Index) -> Option<&T> {
         todo!("Get the node at this address");
     }

@@ -29,23 +29,23 @@ impl<T: Copy> H3Tree<T> {
 }
 
 impl<T: Copy> TreeNode<T> {
-    fn implementation(depth: u8, level: u8, default: T) -> TreeNode<T> {
-        if level == depth {
+    fn implementation(level: u8, default: T) -> TreeNode<T> {
+        if level == 0 {
             TreeNode::Leaf(default)
         } else {
             TreeNode::Node([
-                Box::new(Self::implementation(depth, level + 1, default)),
-                Box::new(Self::implementation(depth, level + 1, default)),
-                Box::new(Self::implementation(depth, level + 1, default)),
-                Box::new(Self::implementation(depth, level + 1, default)),
-                Box::new(Self::implementation(depth, level + 1, default)),
-                Box::new(Self::implementation(depth, level + 1, default)),
-                Box::new(Self::implementation(depth, level + 1, default)),
+                Box::new(Self::implementation(level - 1, default)),
+                Box::new(Self::implementation(level - 1, default)),
+                Box::new(Self::implementation(level - 1, default)),
+                Box::new(Self::implementation(level - 1, default)),
+                Box::new(Self::implementation(level - 1, default)),
+                Box::new(Self::implementation(level - 1, default)),
+                Box::new(Self::implementation(level - 1, default)),
             ])
         }
     }
     pub fn empty(depth: u8, default: T) -> TreeNode<T> {
-        TreeNode::implementation(depth, 0, default)
+        TreeNode::implementation(depth, default)
     }
     pub fn children(&self) -> Option<&[Box<TreeNode<T>>; 7]> {
         match self {
@@ -79,5 +79,22 @@ mod tests {
         let tree = H3Tree::empty(0, 5);
 
         assert!(&tree.root.children().is_none());
+    }
+
+    #[test]
+    fn test_5_level_tree_has_5_levels() {
+        let tree = H3Tree::empty(3, 5);
+
+        if let Some(children) = tree.root.children() {
+            if let Some(children) = children[0].children() {
+                if let Some(children) = children[0].children() {
+                    assert!(children[0].children().is_none());
+                }
+            } else {
+                assert!(false);
+            }
+        } else {
+            assert!(false);
+        }
     }
 }

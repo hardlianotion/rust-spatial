@@ -10,8 +10,9 @@ pub struct Index {
 static ALL_ONES: u64 = u64::MAX;
 static UNSET: u64 = 0;
 static ZERO: u64 = UNSET;
+static BASE_CELL_MASK: u64 = Index::binary_ones(CHILD_CELL_COUNT).index << BASE_CELL_SHIFT;
 static RESOLUTION_MASK: u64 = Index::binary_ones(4u8).index << RESOLUTION_SHIFT;
-//static LOCATION_MASK: u64 = Index::binary_ones(52).index;
+static LOCATION_MASK: u64 = Index::binary_ones(52).index;
 static ZERO_RESOLUTION_ONLY: u64 = ALL_ONES & !RESOLUTION_MASK;
 static CELL_MODE_MASK: u64 = 1 << CELL_MODE_SHIFT;
 
@@ -28,12 +29,20 @@ use rand::distributions::Uniform;
 use rand::{thread_rng, Rng};
 
 impl Index {
+    pub fn unsafe_index(value: u64) -> Index {
+        Index { index: value }
+    }
+
     pub fn to_cell_index(self) -> Result<CellIndex, InvalidCellIndex> {
         CellIndex::try_from(self.index)
     }
 
     pub fn is_valid(self) -> bool {
         self.to_cell_index().is_ok()
+    }
+
+    pub fn base_hex(self) -> u8 {
+        ((self.index & BASE_CELL_MASK) >> BASE_CELL_SHIFT) as u8
     }
 
     fn generate_valid_base(from_resolution: u8, to_resolution: u8) -> Index {
@@ -45,6 +54,12 @@ impl Index {
                 .fold(UNSET, |agg, rhs| agg | (rng.sample(child_gen) << (3 * rhs)))
                 | Index::bit_cell_mask(to_resolution, 3).index,
         }
+    }
+
+    pub fn contains(self, location: Index) -> bool {
+        (self.index & LOCATION_MASK)
+            == ((location.index & LOCATION_MASK) | Index::bit_cell_mask(self.resolution(), 3).index)
+            && self.base_hex() == location.base_hex()
     }
 
     pub fn unsafe_random(base_cell: u32, from_resolution: u8, to_resolution: u8) -> Index {
@@ -99,6 +114,16 @@ mod tests {
     }
 
     #[test]
+    fn index_8e754e64992d6df_should_contain_index_() {
+        Index::unsafe_index((14u64 << 52) + 15u64).contains(Index::unsafe_index(12u64));
+    }
+
+    #[test]
+    fn index_15_should_contain_index_12() {
+        Index::unsafe_index((14u64 << 52) + 15u64).contains(Index::unsafe_index(12u64));
+    }
+
+    #[test]
     fn level_15_mask_should_be_0() {
         assert!(Index::bit_cell_mask(15, 3).index == ZERO);
     }
@@ -107,6 +132,7 @@ mod tests {
     fn level_14_mask_should_be_7() {
         assert!(Index::bit_cell_mask(14, 3).index == 7);
     }
+
     #[test]
     fn level_13_mask_should_be_3f() {
         assert!(Index::bit_cell_mask(13, 3).index == 0x3F);
@@ -117,7 +143,6 @@ mod tests {
         let random_h3 = Index::unsafe_random(28, 0, 13);
         let truncated_h3 = random_h3.truncate_to_resolution(5);
 
-        //println!("{}", truncated_h3.index);
         assert!(truncated_h3.is_valid());
         assert!(truncated_h3.resolution() == 5);
     }

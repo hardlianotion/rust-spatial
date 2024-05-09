@@ -5,6 +5,7 @@ pub enum TreeNode<T> {
 
 pub struct H3Tree<T> {
     pub root: TreeNode<T>,
+    pub depth: u8,
 }
 
 use crate::index::Index;
@@ -13,11 +14,37 @@ impl<T: Copy> H3Tree<T> {
     pub fn empty(depth: u8, t: T) -> H3Tree<T> {
         H3Tree {
             root: TreeNode::empty(depth, t),
+            depth,
         }
     }
 
-    pub fn get(&self, _index: Index) -> Option<&T> {
-        todo!("Get the node at this address");
+    pub fn get_u64(&self, index: u64) -> Option<&T> {
+        let u8indices = Index::to_u8_indices(index);
+
+        // Check that the index can index into the tree.
+        assert!(self.depth <= u8indices.len() as u8);
+        for i in u8indices.iter().skip(self.depth as usize) {
+            if *i != 0 {
+                return None;
+            }
+        }
+
+        // Traverse the tree.
+        let mut current_node = &self.root;
+        for i in u8indices.iter().take(self.depth as usize) {
+            if let Some(children) = current_node.children() {
+                if *i as usize >= children.len() {
+                    return None;
+                }
+                current_node = &children[*i as usize];
+            } else {
+                return None;
+            }
+        }
+        match current_node {
+            TreeNode::Leaf(data) => return Some(data),
+            _ => return None, // This should never happen as we checked the index above.
+        }
     }
 
     pub fn set(&self, _index: Index, _level: u8, _data: T) -> bool {
@@ -61,7 +88,7 @@ impl<T: Copy> TreeNode<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::tree::H3Tree;
+    use crate::{index::Index, tree::H3Tree};
 
     #[test]
     fn test_root_node_is_not_null() {
@@ -100,5 +127,38 @@ mod tests {
         } else {
             assert!(false);
         }
+    }
+
+    #[test]
+    fn test_get_value() {
+        let tree = H3Tree::empty(5, 5);
+        let mut u8idxs: [u8; 15] = [0; 15];
+        u8idxs[0] = 1;
+        u8idxs[1] = 2;
+        u8idxs[2] = 3;
+        u8idxs[3] = 4;
+        u8idxs[4] = 5;
+        let u64idx = Index::from_u8_indices(&u8idxs);
+
+        assert!(tree.get_u64(u64idx).is_some_and(|x| *x == 5));
+    }
+
+    #[test]
+    fn test_get_value_with_invalid_index_with_too_many_levels_returns_none() {
+        let tree = H3Tree::empty(5, 5);
+        let u8idxs: [u8; 15] = [4; 15]; // Indices past the tree depth are non-zero.
+        let u64idx = Index::from_u8_indices(&u8idxs);
+
+        assert!(tree.get_u64(u64idx).is_none());
+    }
+
+    #[test]
+    fn test_get_value_with_invalid_index_with_values_out_of_range_returns_none() {
+        let tree = H3Tree::empty(5, 5);
+        let mut u8idxs: [u8; 15] = [0; 15];
+        u8idxs[3] = 7; // Index is too large.
+        let u64idx = Index::from_u8_indices(&u8idxs);
+
+        assert!(tree.get_u64(u64idx).is_none());
     }
 }

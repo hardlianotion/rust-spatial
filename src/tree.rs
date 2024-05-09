@@ -47,6 +47,38 @@ impl<T: Copy> H3Tree<T> {
         }
     }
 
+    pub fn set_u64(&mut self, index: u64, value: T) -> Result<(), ()> {
+        let u8indices = Index::to_u8_indices(index);
+
+        // Check that the index can index into the tree.
+        assert!(self.depth <= u8indices.len() as u8);
+        for i in u8indices.iter().skip(self.depth as usize) {
+            if *i != 0 {
+                return Err(());
+            }
+        }
+
+        // Traverse the tree.
+        let mut current_node = &mut self.root;
+        for i in u8indices.iter().take(self.depth as usize) {
+            if let Some(children) = current_node.mut_children() {
+                if *i as usize >= children.len() {
+                    return Err(());
+                }
+                current_node = &mut children[*i as usize];
+            } else {
+                return Err(());
+            }
+        }
+        match current_node {
+            TreeNode::Leaf(leaf) => {
+                *leaf = value;
+                return Ok(());
+            }
+            _ => return Err(()), // This should never happen as we checked the index above.
+        }
+    }
+
     pub fn set(&self, _index: Index, _level: u8, _data: T) -> bool {
         todo!("Set data at the specified index");
     }
@@ -75,10 +107,19 @@ impl<T: Copy> TreeNode<T> {
             )
         }
     }
+
     pub fn empty(depth: u8, default: T) -> TreeNode<T> {
         TreeNode::implementation(depth, default)
     }
+
     pub fn children(&self) -> Option<&[Box<TreeNode<T>>; 7]> {
+        match self {
+            TreeNode::Leaf(_) => None,
+            TreeNode::Node(_, children) => Some(children),
+        }
+    }
+
+    fn mut_children(&mut self) -> Option<&mut [Box<TreeNode<T>>; 7]> {
         match self {
             TreeNode::Leaf(_) => None,
             TreeNode::Node(_, children) => Some(children),
@@ -160,5 +201,16 @@ mod tests {
         let u64idx = Index::from_u8_indices(&u8idxs);
 
         assert!(tree.get_u64(u64idx).is_none());
+    }
+
+    #[test]
+    fn test_set_get_value() {
+        let mut tree = H3Tree::empty(5, 0);
+        let u8idxs: [u8; 15] = [0; 15];
+        let u64idx = Index::from_u8_indices(&u8idxs);
+
+        assert!(tree.get_u64(u64idx).is_some_and(|x| *x == 0));
+        assert!(tree.set_u64(u64idx, 3).is_ok());
+        assert!(tree.get_u64(u64idx).is_some_and(|x| *x == 3));
     }
 }

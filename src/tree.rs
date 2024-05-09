@@ -6,15 +6,20 @@ pub enum TreeNode<T> {
 pub struct H3Tree<T> {
     pub address: Index,
     pub root: TreeNode<T>,
+    pub root_resolution: u8,
+    pub leaf_resolution: u8,
 }
 
 use crate::index::Index;
 
 impl<T: Copy> H3Tree<T> {
-    pub fn empty(depth: u8, root_address: Index, t: T) -> H3Tree<T> {
+    pub fn empty(root_res: u8, leaf_res: u8, root_address: Index, t: T) -> H3Tree<T> {
+        assert!(root_res <= leaf_res);
         H3Tree {
             address: root_address,
-            root: TreeNode::empty(depth, t),
+            root: TreeNode::empty(leaf_res - root_res, t),
+            root_resolution: root_res,
+            leaf_resolution: leaf_res,
         }
     }
 
@@ -26,8 +31,10 @@ impl<T: Copy> H3Tree<T> {
         todo!("Set data at the specified index");
     }
 
-    pub fn contains(&self, _index: Index) -> bool {
-        todo!("Check that tree contains index.");
+    pub fn contains(&self, index: Index) -> bool {
+        self.address
+            .truncate_to_resolution(self.root_resolution)
+            .contains(index)
     }
 }
 
@@ -68,7 +75,7 @@ mod tests {
     #[test]
     fn test_root_node_is_not_null() {
         let root_address = Index::unsafe_random(28, 0, 13);
-        let tree = H3Tree::empty(1, root_address, 5);
+        let tree = H3Tree::empty(0, 1, root_address, 5);
 
         assert!(&tree.root.children().is_some());
     }
@@ -76,7 +83,7 @@ mod tests {
     #[test]
     fn test_nodes_have_7_children() {
         let root_address = Index::unsafe_random(28, 0, 13);
-        let tree = H3Tree::empty(1, root_address, 5);
+        let tree = H3Tree::empty(0, 1, root_address, 5);
         if let Some(children) = tree.root.children() {
             assert!(children.len() == 7);
         }
@@ -85,15 +92,31 @@ mod tests {
     #[test]
     fn test_leaves_have_no_children() {
         let root_address = Index::unsafe_random(28, 0, 13);
-        let tree = H3Tree::empty(0, root_address, 5);
+        let tree = H3Tree::empty(0, 0, root_address, 5);
 
         assert!(&tree.root.children().is_none());
     }
 
     #[test]
+    fn test_tree_contains_address_in_root_cell() {
+        let root_address = Index::unsafe_random(28, 0, 13);
+        let tree = H3Tree::empty(0, 3, root_address, 5);
+
+        assert!(false);
+    }
+
+    #[test]
+    fn test_tree_does_not_contain_address_outside_root_cell() {
+        let root_address = Index::unsafe_random(28, 0, 13);
+        let tree = H3Tree::empty(0, 3, root_address, 5);
+
+        assert!(false);
+    }
+
+    #[test]
     fn test_5_level_tree_has_5_levels() {
         let root_address = Index::unsafe_random(28, 0, 13);
-        let tree = H3Tree::empty(3, root_address, 5);
+        let tree = H3Tree::empty(0, 3, root_address, 5);
 
         if let Some(children) = tree.root.children() {
             if let Some(children) = children[0].children() {

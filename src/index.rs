@@ -82,6 +82,7 @@ impl Index {
 
     pub fn from_u8_indices(indices: &[u8; 15]) -> u64 {
         let mut u64idx: u64 = 0;
+        #[allow(clippy::needless_range_loop)] // Todo: Remove this.
         for i in 0..15 {
             u64idx |= u64::from(indices[i]) << (3 * i);
         }
@@ -90,6 +91,7 @@ impl Index {
 
     pub fn to_u8_indices(u64idx: u64) -> [u8; 15] {
         let mut indices = [0; 15];
+        #[allow(clippy::needless_range_loop)] // Todo: Remove this.
         for i in 0..15 {
             indices[i] = ((u64idx & (7 << (3 * i))) >> (3 * i)).try_into().unwrap();
         }
@@ -140,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_roundtrip_indices() {
-        let u8idxs:[u8;15] = [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2];
+        let u8idxs: [u8; 15] = [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2];
         let u64idx = Index::from_u8_indices(&u8idxs);
         let roundtrip_indices = Index::to_u8_indices(u64idx);
 

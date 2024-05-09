@@ -11,5 +11,7 @@ path = "src/lib.rs"
 test = true
 
 [dependencies]
-
-
+rand = "0.8.5"
+# h3ron = "0.18.0"
+# h3ron_h3_sys = "0.17.0"
+h3o = "0.6.2"

@@ -114,13 +114,15 @@ mod tests {
     }
 
     #[test]
-    fn index_8e754e64992d6df_should_contain_index_() {
-        Index::unsafe_index((14u64 << 52) + 15u64).contains(Index::unsafe_index(12u64));
+    fn index_8e754e64992d6df_should_contain_index_8f754e64992d6d8() {
+        let smaller_cell: u64 = 0x8f754e64992d6d8;
+        let larger_cell: u64 = 0x8e754e64992d6df;
+        assert!(Index::unsafe_index(larger_cell).contains(Index::unsafe_index(smaller_cell)));
     }
 
     #[test]
     fn index_15_should_contain_index_12() {
-        Index::unsafe_index((14u64 << 52) + 15u64).contains(Index::unsafe_index(12u64));
+        assert!(Index::unsafe_index((14u64 << 52) + 15u64).contains(Index::unsafe_index(12u64)));
     }
 
     #[test]

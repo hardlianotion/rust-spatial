@@ -6,6 +6,11 @@ pub struct Index {
     pub index: u64,
 }
 
+pub struct IndexStructure {
+    pub base: u8,
+    pub address: Vec<u8>,
+}
+
 // bitmasks
 static ALL_ONES: u64 = u64::MAX;
 static UNSET: u64 = 0;
@@ -15,6 +20,7 @@ static RESOLUTION_MASK: u64 = Index::binary_ones(4u8).index << RESOLUTION_SHIFT;
 static LOCATION_MASK: u64 = Index::binary_ones(52).index;
 static ZERO_RESOLUTION_ONLY: u64 = ALL_ONES & !RESOLUTION_MASK;
 static CELL_MODE_MASK: u64 = 1 << CELL_MODE_SHIFT;
+//static IN_BASE_MASK: u64 = Index::binary_ones(45).index;
 
 // shifts
 static BASE_CELL_SHIFT: u8 = 45;
@@ -56,10 +62,56 @@ impl Index {
         }
     }
 
+    pub fn local_index(self, i: u8) -> u8 {
+        ((self.index & Index::local_index_mask(i)) >> ((MAX_RESOLUTION - i) * 3)) as u8
+    }
+
     pub fn contains(self, location: Index) -> bool {
         (self.index & LOCATION_MASK)
             == ((location.index & LOCATION_MASK) | Index::bit_cell_mask(self.resolution(), 3).index)
             && self.base_hex() == location.base_hex()
+    }
+
+    pub fn local_index_mask(resolution: u8) -> u64 {
+        Index::unsafe_index((CHILD_CELL_COUNT as u64) << (3 * (MAX_RESOLUTION - resolution))).index
+    }
+
+    pub fn global_index_part(local_index: u8, resolution: u8) -> u64 {
+        Index::unsafe_index(Index::local_index_mask(MAX_RESOLUTION) & (local_index as u64)).index
+            << (3 * (MAX_RESOLUTION - resolution))
+    }
+
+    pub fn to_index_structure(self) -> IndexStructure {
+        let base_data: u8 = (self.index | BASE_CELL_MASK >> BASE_CELL_SHIFT) as u8;
+        let address_array: Vec<u8> = (0u8..15u8).map(|i| self.local_index(i)).collect();
+
+        IndexStructure {
+            base: base_data,
+            address: address_array,
+        }
+    }
+
+    pub fn from_index_data(resolution: u8, base_cell: u8, address: u64) -> Index {
+        Index {
+            index: CELL_MODE_MASK
+                | (resolution as u64) << RESOLUTION_SHIFT
+                | ((base_cell as u64) << BASE_CELL_SHIFT)
+                | address,
+        }
+    }
+
+    pub fn from_address_map(
+        resolution: u8,
+        base_cell: u8,
+        resolution_to_local: &[(u8, u8)],
+    ) -> Index {
+        let index = resolution_to_local
+            .iter()
+            .fold(UNSET, |agg, (res, local_index)| {
+                agg | Index::global_index_part(*local_index, *res)
+            });
+
+        Index::from_index_data(resolution, base_cell, index)
     }
 
     pub fn unsafe_random(base_cell: u32, from_resolution: u8, to_resolution: u8) -> Index {
@@ -138,6 +190,17 @@ mod tests {
     #[test]
     fn level_13_mask_should_be_3f() {
         assert!(Index::bit_cell_mask(13, 3).index == 0x3F);
+    }
+
+    #[test]
+    fn test_index_to_index_data_conversion() {
+        let test_data = vec![
+            0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 5u8, 0u8, 4u8, 2u8, 6u8, 0u8, 0u8, 0u8,
+        ];
+        let index_data = vec![(7u8, 5u8), (9u8, 4u8), (10u8, 2u8), (11u8, 6u8)];
+        let index = Index::from_address_map(28, 0, &index_data);
+        let index_structure = index.to_index_structure();
+        assert!(test_data == index_structure.address)
     }
 
     #[test]

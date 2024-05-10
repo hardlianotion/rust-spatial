@@ -99,18 +99,32 @@ mod tests {
 
     #[test]
     fn test_tree_contains_address_in_root_cell() {
-        let root_address = Index::unsafe_random(28, 0, 13);
+        let root_data = vec![(7u8, 5u8), (9u8, 4u8), (10u8, 2u8), (11u8, 6u8)];
+        let root_address = Index::from_address_map(28, 0, &root_data);
         let tree = H3Tree::empty(0, 3, root_address, 5);
 
-        assert!(false);
+        let tree_data = vec![
+            (7u8, 5u8),
+            (9u8, 4u8),
+            (10u8, 2u8),
+            (11u8, 6u8),
+            (12u8, 4u8),
+        ];
+        let tree_index = Index::from_address_map(15, 28, &tree_data);
+
+        assert!(!tree.contains(tree_index));
     }
 
     #[test]
     fn test_tree_does_not_contain_address_outside_root_cell() {
-        let root_address = Index::unsafe_random(28, 0, 13);
+        let root_data = vec![(7u8, 5u8), (9u8, 4u8), (10u8, 2u8), (11u8, 6u8)];
+        let root_address = Index::from_address_map(28, 0, &root_data);
         let tree = H3Tree::empty(0, 3, root_address, 5);
 
-        assert!(false);
+        let not_tree_data = vec![(7u8, 5u8), (9u8, 4u8), (10u8, 2u8), (12u8, 6u8)];
+        let no_tree_index = Index::from_address_map(15, 28, &not_tree_data);
+
+        assert!(!tree.contains(no_tree_index));
     }
 
     #[test]

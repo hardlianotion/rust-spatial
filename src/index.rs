@@ -20,7 +20,6 @@ static RESOLUTION_MASK: u64 = Index::binary_ones(4u8).index << RESOLUTION_SHIFT;
 static LOCATION_MASK: u64 = Index::binary_ones(52).index;
 static ZERO_RESOLUTION_ONLY: u64 = ALL_ONES & !RESOLUTION_MASK;
 static CELL_MODE_MASK: u64 = 1 << CELL_MODE_SHIFT;
-//static IN_BASE_MASK: u64 = Index::binary_ones(45).index;
 
 // shifts
 static BASE_CELL_SHIFT: u8 = 45;
@@ -100,7 +99,7 @@ impl Index {
         }
     }
 
-    pub fn from_address_map(
+    pub fn from_sparse_index_map(
         resolution: u8,
         base_cell: u8,
         resolution_to_local: &[(u8, u8)],
@@ -145,6 +144,24 @@ impl Index {
 
     pub fn resolution(self) -> u8 {
         ((self.index & RESOLUTION_MASK) >> RESOLUTION_SHIFT) as u8
+    }
+
+    pub fn from_u8_indices(indices: &[u8; 15]) -> u64 {
+        let mut u64idx: u64 = 0;
+        #[allow(clippy::needless_range_loop)] // Todo: Remove this.
+        for i in 0..15 {
+            u64idx |= u64::from(indices[i]) << (3 * i);
+        }
+        u64idx
+    }
+
+    pub fn to_u8_indices(u64idx: u64) -> [u8; 15] {
+        let mut indices = [0; 15];
+        #[allow(clippy::needless_range_loop)] // Todo: Remove this.
+        for i in 0..15 {
+            indices[i] = ((u64idx & (7 << (3 * i))) >> (3 * i)).try_into().unwrap();
+        }
+        indices
     }
 }
 
@@ -193,12 +210,12 @@ mod tests {
     }
 
     #[test]
-    fn test_index_to_index_data_conversion() {
+    fn test_roundtrip_index_to_index_data_conversion() {
         let test_data = vec![
             0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 5u8, 0u8, 4u8, 2u8, 6u8, 0u8, 0u8, 0u8,
         ];
         let index_data = vec![(7u8, 5u8), (9u8, 4u8), (10u8, 2u8), (11u8, 6u8)];
-        let index = Index::from_address_map(28, 0, &index_data);
+        let index = Index::from_sparse_index_map(28, 0, &index_data);
         let index_structure = index.to_index_structure();
         assert!(test_data == index_structure.address)
     }
@@ -210,5 +227,14 @@ mod tests {
 
         assert!(truncated_h3.is_valid());
         assert!(truncated_h3.resolution() == 5);
+    }
+
+    #[test]
+    fn test_roundtrip_indices() {
+        let u8idxs: [u8; 15] = [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2];
+        let u64idx = Index::from_u8_indices(&u8idxs);
+        let roundtrip_indices = Index::to_u8_indices(u64idx);
+
+        assert!(u8idxs == roundtrip_indices);
     }
 }

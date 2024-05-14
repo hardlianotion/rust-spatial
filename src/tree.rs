@@ -1,6 +1,53 @@
 pub enum TreeNode<T> {
-    Leaf(T),
-    Node(T, [Box<TreeNode<T>>; 7]),
+    Leaf(Leaf<T>),
+    Node(Node<T>),
+}
+
+pub struct Leaf<T> {
+    data: T,
+}
+
+pub struct Node<T> {
+    data: T,
+    children: [Box<TreeNode<T>>; 7],
+}
+
+impl<T> Leaf<T> {
+    pub fn implementation(default: T) -> Leaf<T> {
+        Leaf { data: default }
+    }
+}
+
+impl<T: Copy> Node<T> {
+    pub fn implementation(level: u8, default: T) -> Node<T> {
+        if level == 1 {
+            Node {
+                data: default,
+                children: [
+                    Box::new(TreeNode::Leaf(Leaf::implementation(default))),
+                    Box::new(TreeNode::Leaf(Leaf::implementation(default))),
+                    Box::new(TreeNode::Leaf(Leaf::implementation(default))),
+                    Box::new(TreeNode::Leaf(Leaf::implementation(default))),
+                    Box::new(TreeNode::Leaf(Leaf::implementation(default))),
+                    Box::new(TreeNode::Leaf(Leaf::implementation(default))),
+                    Box::new(TreeNode::Leaf(Leaf::implementation(default))),
+                ],
+            }
+        } else {
+            Node {
+                data: default,
+                children: [
+                    Box::new(TreeNode::Node(Self::implementation(level - 1, default))),
+                    Box::new(TreeNode::Node(Self::implementation(level - 1, default))),
+                    Box::new(TreeNode::Node(Self::implementation(level - 1, default))),
+                    Box::new(TreeNode::Node(Self::implementation(level - 1, default))),
+                    Box::new(TreeNode::Node(Self::implementation(level - 1, default))),
+                    Box::new(TreeNode::Node(Self::implementation(level - 1, default))),
+                    Box::new(TreeNode::Node(Self::implementation(level - 1, default))),
+                ],
+            }
+        }
+    }
 }
 
 pub struct H3Tree<T> {
@@ -53,8 +100,8 @@ impl<T: Copy> H3Tree<T> {
             }
         }
         match current_node {
-            TreeNode::Leaf(data) => Some(data),
-            _ => None, // This should never happen as we checked the index above.
+            TreeNode::Leaf(Leaf { data }) => Some(data),
+            TreeNode::Node(Node { data, children: _ }) => Some(data), // This should never happen as we checked the index above.
         }
     }
 
@@ -84,11 +131,14 @@ impl<T: Copy> H3Tree<T> {
             }
         }
         match current_node {
-            TreeNode::Leaf(leaf) => {
-                *leaf = value;
+            TreeNode::Leaf(Leaf { data }) => {
+                *data = value;
                 Ok(())
             }
-            _ => Err(H3TreeError {}), // This should never happen as we checked the index above.
+            TreeNode::Node(Node { data, children: _ }) => {
+                *data = value;
+                Ok(())
+            } // This should never happen as we checked the index above.
         }
     }
 
@@ -106,20 +156,9 @@ impl<T: Copy> H3Tree<T> {
 impl<T: Copy> TreeNode<T> {
     fn implementation(level: u8, default: T) -> TreeNode<T> {
         if level == 0 {
-            TreeNode::Leaf(default)
+            Self::Leaf(Leaf::implementation(default))
         } else {
-            TreeNode::Node(
-                default,
-                [
-                    Box::new(Self::implementation(level - 1, default)),
-                    Box::new(Self::implementation(level - 1, default)),
-                    Box::new(Self::implementation(level - 1, default)),
-                    Box::new(Self::implementation(level - 1, default)),
-                    Box::new(Self::implementation(level - 1, default)),
-                    Box::new(Self::implementation(level - 1, default)),
-                    Box::new(Self::implementation(level - 1, default)),
-                ],
-            )
+            Self::Node(Node::implementation(level, default))
         }
     }
 
@@ -130,14 +169,14 @@ impl<T: Copy> TreeNode<T> {
     pub fn children(&self) -> Option<&[Box<TreeNode<T>>; 7]> {
         match self {
             TreeNode::Leaf(_) => None,
-            TreeNode::Node(_, children) => Some(children),
+            TreeNode::Node(Node { data: _, children }) => Some(children),
         }
     }
 
     fn mut_children(&mut self) -> Option<&mut [Box<TreeNode<T>>; 7]> {
         match self {
             TreeNode::Leaf(_) => None,
-            TreeNode::Node(_, children) => Some(children),
+            TreeNode::Node(Node { data: _, children }) => Some(children),
         }
     }
 }
